@@ -1,0 +1,99 @@
+# ===========================================
+# Alertmanager - Configuração
+# WebMailForcenecedor Monitoring Stack
+# ===========================================
+
+global:
+  # Tempo para resolver um alerta após parar de receber
+  resolve_timeout: 5m
+  
+  # Configuração de Email (opcional)
+  # smtp_smarthost: 'smtp.gmail.com:587'
+  # smtp_from: 'alertas@seudominio.com'
+  # smtp_auth_username: 'seu-email@gmail.com'
+  # smtp_auth_password: 'sua-senha-app'
+
+# Templates customizados
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Roteamento de alertas
+route:
+  # Agrupamento padrão
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  
+  # Receiver padrão
+  receiver: 'default-receiver'
+  
+  # Rotas específicas por severidade
+  routes:
+    # Alertas críticos - notificação imediata
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      repeat_interval: 1h
+    
+    # Alertas de warning
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 1m
+      repeat_interval: 4h
+
+# Receivers (destinos de notificação)
+receivers:
+  # Receiver padrão (log apenas)
+  - name: 'default-receiver'
+    webhook_configs:
+      - url: 'http://web:5000/api/alerts/webhook'
+        send_resolved: true
+
+  # Alertas críticos
+  - name: 'critical-alerts'
+    webhook_configs:
+      - url: 'http://web:5000/api/alerts/webhook'
+        send_resolved: true
+    # Descomente para Email
+    # email_configs:
+    #   - to: 'admin@seudominio.com'
+    #     send_resolved: true
+    #     headers:
+    #       subject: '🚨 CRÍTICO: {{ .GroupLabels.alertname }}'
+    
+    # Descomente para Slack
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+    #     channel: '#alertas-criticos'
+    #     send_resolved: true
+    #     title: '🚨 Alerta Crítico'
+    #     text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}'
+
+  # Alertas de warning
+  - name: 'warning-alerts'
+    webhook_configs:
+      - url: 'http://web:5000/api/alerts/webhook'
+        send_resolved: true
+    # Descomente para Slack
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+    #     channel: '#alertas-warning'
+    #     send_resolved: true
+
+# Inibição de alertas (evitar alertas redundantes)
+inhibit_rules:
+  # Se host está down, inibir outros alertas desse host
+  - source_match:
+      alertname: 'HostDown'
+    target_match_re:
+      alertname: '.*'
+    equal: ['instance']
+  
+  # Se PostgreSQL down, inibir alertas de queries
+  - source_match:
+      alertname: 'PostgreSQLDown'
+    target_match_re:
+      alertname: 'PostgreSQL.*'

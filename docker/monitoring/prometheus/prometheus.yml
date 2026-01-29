@@ -1,0 +1,82 @@
+# ===========================================
+# Prometheus - Configuração Principal
+# WebMailForcenecedor Monitoring Stack
+# ===========================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'webmail-monitor'
+
+# Regras de Alerta
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+# Alertmanager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# ===========================================
+# SCRAPE CONFIGS
+# ===========================================
+scrape_configs:
+  # -----------------------------------------
+  # Prometheus Self-Monitoring
+  # -----------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+
+  # -----------------------------------------
+  # Flask Application
+  # -----------------------------------------
+  - job_name: 'flask-app'
+    static_configs:
+      - targets: ['web:5000']
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # -----------------------------------------
+  # Node Exporter (Host Metrics)
+  # -----------------------------------------
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'webmail-host'
+
+  # -----------------------------------------
+  # cAdvisor (Container Metrics)
+  # -----------------------------------------
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 10s
+
+  # -----------------------------------------
+  # Redis Exporter
+  # -----------------------------------------
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # -----------------------------------------
+  # PostgreSQL Exporter
+  # -----------------------------------------
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # -----------------------------------------
+  # Nginx (se tiver exporter)
+  # -----------------------------------------
+  # - job_name: 'nginx'
+  #   static_configs:
+  #     - targets: ['nginx-exporter:9113']
