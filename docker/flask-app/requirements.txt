@@ -1,0 +1,31 @@
+# Dependências Python para WebMailForcenecedor
+
+# Framework Web
+Flask==3.0.0
+Flask-RESTful==0.3.10
+Flask-CORS==4.0.0
+
+# Banco de Dados
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.23
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.5
+
+# Autenticação e Segurança
+Flask-Login==0.6.3
+Flask-JWT-Extended==4.6.0
+python-dotenv==1.0.0
+bcrypt==4.1.1
+
+# IMAP/SMTP
+imapclient==3.0.1
+python-magic==0.4.27
+
+# Cache e Sessões
+redis==5.0.1
+Flask-Session==0.5.0
+
+# Utilitários
+gunicorn==21.2.0
+requests==2.31.0
+email-validator==2.1.0
