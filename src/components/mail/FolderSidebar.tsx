@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { StorageIndicator } from "./StorageIndicator";
 
 const iconMap: Record<string, React.ElementType> = {
   Inbox,
@@ -94,6 +95,11 @@ export function FolderSidebar({ onCompose }: FolderSidebarProps) {
           })}
         </div>
       </ScrollArea>
+
+      {/* Storage */}
+      <div className="border-t border-sidebar-border">
+        <StorageIndicator usedGB={2.8} totalGB={5} />
+      </div>
 
       {/* Footer */}
       <div className="p-3 border-t border-sidebar-border space-y-2">
