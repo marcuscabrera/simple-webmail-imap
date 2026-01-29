@@ -1,0 +1,190 @@
+# ===========================================
+# Prometheus - Regras de Alerta
+# WebMailForcenecedor Monitoring Stack
+# ===========================================
+
+groups:
+  # -----------------------------------------
+  # ALERTAS DE INFRAESTRUTURA
+  # -----------------------------------------
+  - name: infrastructure
+    rules:
+      # Host Down
+      - alert: HostDown
+        expr: up{job="node-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Host está offline"
+          description: "O servidor host não está respondendo há mais de 1 minuto."
+
+      # Alta utilização de CPU
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta utilização de CPU (> 80%)"
+          description: "CPU em {{ $value }}% de uso por mais de 5 minutos."
+
+      # Alta utilização de Memória
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta utilização de memória (> 85%)"
+          description: "Memória em {{ $value }}% de uso."
+
+      # Disco quase cheio
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Espaço em disco baixo (> 85%)"
+          description: "Disco {{ $labels.mountpoint }} está em {{ $value }}%."
+
+      # Disco crítico
+      - alert: DiskSpaceCritical
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Espaço em disco crítico (> 95%)"
+          description: "Disco {{ $labels.mountpoint }} está em {{ $value }}%. Ação imediata necessária!"
+
+  # -----------------------------------------
+  # ALERTAS DE APLICAÇÃO
+  # -----------------------------------------
+  - name: application
+    rules:
+      # Flask Down
+      - alert: FlaskAppDown
+        expr: up{job="flask-app"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Aplicação Flask está offline"
+          description: "O backend Flask não está respondendo."
+
+      # Alta latência de requisições
+      - alert: HighRequestLatency
+        expr: histogram_quantile(0.95, rate(flask_http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta latência nas requisições"
+          description: "95% das requisições estão levando mais de 2 segundos."
+
+      # Taxa de erros alta
+      - alert: HighErrorRate
+        expr: rate(flask_http_request_total{status=~"5.."}[5m]) / rate(flask_http_request_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taxa de erros HTTP alta (> 5%)"
+          description: "{{ $value | humanizePercentage }} das requisições estão falhando."
+
+  # -----------------------------------------
+  # ALERTAS DE CONTAINERS
+  # -----------------------------------------
+  - name: containers
+    rules:
+      # Container reiniciando frequentemente
+      - alert: ContainerRestartingFrequently
+        expr: increase(container_restart_count[1h]) > 5
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container reiniciando frequentemente"
+          description: "Container {{ $labels.name }} reiniciou {{ $value }} vezes na última hora."
+
+      # Container usando muita memória
+      - alert: ContainerHighMemory
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container com alta utilização de memória"
+          description: "Container {{ $labels.name }} está usando {{ $value }}% da memória alocada."
+
+  # -----------------------------------------
+  # ALERTAS DE BANCO DE DADOS
+  # -----------------------------------------
+  - name: database
+    rules:
+      # PostgreSQL Down
+      - alert: PostgreSQLDown
+        expr: up{job="postgresql"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL está offline"
+          description: "Banco de dados PostgreSQL não está respondendo."
+
+      # Muitas conexões
+      - alert: PostgreSQLTooManyConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Muitas conexões no PostgreSQL"
+          description: "PostgreSQL tem {{ $value }} conexões ativas."
+
+      # Queries lentas
+      - alert: PostgreSQLSlowQueries
+        expr: rate(pg_stat_activity_max_tx_duration{state="active"}[5m]) > 60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Queries lentas no PostgreSQL"
+          description: "Existem queries executando por mais de 60 segundos."
+
+  # -----------------------------------------
+  # ALERTAS DE REDIS
+  # -----------------------------------------
+  - name: redis
+    rules:
+      # Redis Down
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis está offline"
+          description: "Cache Redis não está respondendo."
+
+      # Redis usando muita memória
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis com alta utilização de memória"
+          description: "Redis está usando {{ $value }}% da memória configurada."
+
+      # Muitas conexões rejeitadas
+      - alert: RedisRejectedConnections
+        expr: increase(redis_rejected_connections_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis rejeitando conexões"
+          description: "Redis rejeitou {{ $value }} conexões na última hora."
