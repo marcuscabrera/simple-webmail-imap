@@ -47,7 +47,7 @@ export function LoginForm() {
             <Mail className="h-8 w-8 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">
-            WebMailForcenecedor
+            Simple Webmail IMAP
           </CardTitle>
           <CardDescription className="text-muted-foreground">
             Entre com suas credenciais IMAP para acessar seu e-mail
